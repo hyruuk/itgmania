@@ -97,6 +97,8 @@ def _download(version: str, target: Path) -> None:
     if name not in sums:
         raise BinaryNotFound(f"release gym-v{version} has no {name}")
     target.parent.mkdir(parents=True, exist_ok=True)
+    print(f"itgmania-gym: fetching the game ({name}, gym-v{version}) into {target}; "
+          "this happens once", file=sys.stderr, flush=True)
     with tempfile.TemporaryDirectory(dir=target.parent) as tmp:
         archive = Path(tmp) / name
         digest = hashlib.sha256()

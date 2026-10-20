@@ -106,3 +106,49 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" *.tar.xz *.whl SHA256SUMS \
             --title "${GITHUB_REF_NAME}" \
             --notes "ITGmania with gym mode: game packs for itgmania-gym ${GITHUB_REF_NAME#gym-v} (macOS arm64, Linux x86_64) and its wheel."
+
+  # What a user gets: the wheel from the release, which fetches its own pack.
+  smoke:
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-15]
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The libraries python/README.md lists, and a virtual display.
+      - name: Install the game's system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1 libglu1-mesa libgtk-3-0 \
+            libasound2 libpulse0 libxtst6 libxrandr2 libxinerama1
+
+      - name: Install the wheel and play four seconds
+        timeout-minutes: 20
+        run: |
+          version="${GITHUB_REF_NAME#gym-v}"
+          python -m pip install "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/itgmania_gym-${version}-py3-none-any.whl"
+          cat > smoke.py <<'EOF'
+          import numpy as np
+          from itgmania_gym import ItgEnv
+
+          env = ItgEnv("StepMania 5/Springtime", "Medium", fps=60)
+          frame, first = env.reset(seed=1)
+          for _ in range(240):
+              frame, reward, terminated, truncated, info = env.step(np.zeros(4, dtype=np.int8))
+              assert env.audio().shape == (800, 2), env.audio().shape
+          assert frame.shape == (480, 854, 3) and frame.any()
+          assert abs(info["music_seconds"] - first["music_seconds"] - 4) < 1e-3, info["music_seconds"]
+          env.close()
+          print("played %.3f s of %s" % (info["music_seconds"], first["meta"]["song"]["title"]))
+          EOF
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a -s "-screen 0 1280x1024x24" python smoke.py
+          else
+            python smoke.py
+          fi

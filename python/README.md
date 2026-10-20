@@ -18,11 +18,11 @@ env.close()
 - **Reward**: the change in the game's dance points (ITG scoring). **Terminated**: the stage ended (the song finished, or a fail type that stops it fired).
 - **Info**: the game's state after the step: the judgments it just made (column, score, offset, row), the presses it received, scores and combo, life, the song position.
 
-Every `reset` launches a fresh game process (about 0.2 s), which is what makes an episode depend on nothing but its seed and its actions.
+Every `reset` launches a fresh game process (about half a second to the first frame), which is what makes an episode depend on nothing but its seed and its actions.
 
 ## The game
 
-The package needs the fork's binary, which has the gym mode built in. In order, it uses: `ItgEnv(binary=...)`; `$ITGMANIA_GYM_BIN`; the build of the checkout the package lives in; the prebuilt pack for its version (macOS arm64, Linux x86_64), fetched once from the `gym-v<version>` release into `~/.cache/itgmania-gym/` (`ITGMANIA_GYM_OFFLINE=1` forbids fetching). It needs a display (on a headless Linux machine, `xvfb-run`); the window is never shown.
+The package needs the fork's binary, which has the gym mode built in. In order, it uses: `ItgEnv(binary=...)`; `$ITGMANIA_GYM_BIN`; the build of the checkout the package lives in; the prebuilt pack for its version (macOS arm64, Linux x86_64), fetched once from the `gym-v<version>` release into `~/.cache/itgmania-gym/` (`ITGMANIA_GYM_OFFLINE=1` forbids fetching). It needs a display (on a headless Linux machine, `xvfb-run`); the window is never shown. On a Mac with no GPU (a CI virtual machine) it draws with Apple's software renderer, about seven times slower. On Linux the game uses the system's OpenGL, X11, GTK 3, ALSA and PulseAudio libraries, which a desktop install has; on a minimal Ubuntu: `sudo apt install libgl1 libglu1-mesa libgtk-3-0 libasound2 libpulse0 libxtst6 libxrandr2 libxinerama1`.
 
 To build it from the checkout (submodules included):
 
