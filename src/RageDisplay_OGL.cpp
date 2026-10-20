@@ -514,6 +514,9 @@ std::string RageDisplay_Legacy::Init(
   LOG->Info(
       "OGL Renderer: %s",
       reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+  if (GymClock::IsEnabled()) {
+    Gym::SetRenderer(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+  }
   LOG->Info(
       "OGL Version: %s",
       reinterpret_cast<const char*>(glGetString(GL_VERSION)));

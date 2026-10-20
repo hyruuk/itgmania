@@ -90,6 +90,12 @@ void ApplyPreferences();
  * width*height*3 bytes), or nullptr when this frame is not wanted. */
 uint8_t* FrameDestination(int width, int height);
 
+/* The OpenGL renderer that draws the frames (its GL_RENDERER), which the
+ * display reports once: frames are exact on one machine and renderer, not
+ * across them. */
+void SetRenderer(const std::string& sRenderer);
+const std::string& Renderer();
+
 /* ScreenGameplay calls this where it would leave for the next screen. */
 void OnStageFinished();
 

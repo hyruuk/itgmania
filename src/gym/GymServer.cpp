@@ -52,6 +52,7 @@ Json::Value Meta() {
   meta["protocol"] = PROTOCOL_VERSION;
   meta["engine"] = product_version;
   meta["engine_git"] = sm_version_git_hash;
+  meta["renderer"] = Gym::Renderer();
   meta["fps"] = o.fps;
   meta["seed"] = o.seed;
   meta["frame"]["width"] = o.width;

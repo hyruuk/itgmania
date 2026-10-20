@@ -1,13 +1,13 @@
 # itgmania-gym
 
-[ITGmania](https://www.itgmania.com) (StepMania) as a [Gymnasium](https://gymnasium.farama.org) environment: the real game plays every frame, in lock step. Each `step` advances the game by exactly `1/fps` seconds, presses the dance buttons the action holds, and brings back the rendered frame and the audio that sounds while it is on screen. Nothing in a run depends on wall time, so an episode replays bit for bit from its seed and its actions.
+[ITGmania](https://www.itgmania.com) (StepMania) as a [Gymnasium](https://gymnasium.farama.org) environment: the real game plays every frame, in lock step. Each `step` advances the game by exactly `1/fps` seconds, presses the dance buttons the action holds, and brings back the rendered frame and the audio that sounds while it is on screen. Nothing in a run depends on wall time, so an episode replays bit for bit from its seed and its actions, on the same machine and OpenGL renderer (`info["meta"]["renderer"]`).
 
 ```python
 import numpy as np
 from itgmania_gym import ItgEnv
 
 env = ItgEnv("StepMania 5/Springtime", "Medium", fps=60, speed="M250", fail="off")
-frame, info = env.reset(seed=1)            # info["meta"]: song, chart, options, timing windows
+frame, info = env.reset(seed=1)            # info["meta"]: song, chart, options, timing windows, renderer
 frame, reward, terminated, truncated, info = env.step(np.array([0, 1, 0, 0]))  # hold down
 pcm = env.audio()                          # (frames, 2) int16 at env.audio_rate (48000)
 env.close()

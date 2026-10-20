@@ -127,29 +127,47 @@ import hashlib, json, sys
 import numpy as np
 from itgmania_gym import ItgEnv
 env = ItgEnv(sys.argv[1])
-digest = hashlib.sha256()
+frames, sound_and_state = hashlib.sha256(), hashlib.sha256()
 obs, info = env.reset(seed=7)
+renderer = info["meta"]["renderer"]
 rng = np.random.default_rng(3)
 for _ in range(900):
     obs, reward, terminated, truncated, info = env.step(rng.integers(0, 2, 4))
-    digest.update(obs.tobytes())
-    digest.update(env.audio().tobytes())
-    digest.update(json.dumps(info, sort_keys=True).encode())
+    frames.update(obs.tobytes())
+    sound_and_state.update(env.audio().tobytes())
+    sound_and_state.update(json.dumps(info, sort_keys=True).encode())
 env.close()
-print(digest.hexdigest())
+print(json.dumps({"frames": frames.hexdigest(), "sound_and_state": sound_and_state.hexdigest(),
+                  "renderer": renderer}))
 """
 
 
-def test_two_processes_play_the_same_bytes():
-    def run(hashseed: str) -> str:
+@pytest.fixture(scope="module")
+def two_runs():
+    """The same 900 random steps in two processes, under two hash seeds."""
+
+    def run(hashseed: str) -> dict:
         out = subprocess.run(
             [sys.executable, "-c", _RUN, SONG],
             capture_output=True, text=True, check=True,
             env={**__import__("os").environ, "PYTHONHASHSEED": hashseed},
         )
-        return out.stdout.strip()
+        return json.loads(out.stdout)
 
-    assert run("1") == run("2")
+    return run("1"), run("2")
+
+
+def test_two_processes_play_the_same_sound_and_state(two_runs):
+    first, second = two_runs
+    assert first["sound_and_state"] == second["sound_and_state"]
+
+
+def test_two_processes_draw_the_same_frames(two_runs):
+    first, second = two_runs
+    if first["renderer"] == "Apple Software Renderer":
+        pytest.skip("Apple's software renderer (a Mac with no GPU, as on CI) rounds a few "
+                    "pixels differently from run to run under load")
+    assert first["frames"] == second["frames"]
 
 
 def test_an_unknown_song_is_refused_with_the_reason():

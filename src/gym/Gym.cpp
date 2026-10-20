@@ -61,6 +61,7 @@ const GameButton DANCE_BUTTONS[Gym::NUM_BUTTONS] = {
 // The frame the step being run asked for, which the display fills.
 bool g_bWantFrame = false;
 std::vector<uint8_t> g_Frame;
+std::string g_sRenderer;
 
 int64_t g_iStepsTaken = -1;
 bool g_bFinished = false;
@@ -677,6 +678,10 @@ uint8_t* Gym::FrameDestination(int width, int height) {
   g_Frame.resize(static_cast<size_t>(width) * height * 3);
   return g_Frame.data();
 }
+
+void Gym::SetRenderer(const std::string& sRenderer) { g_sRenderer = sRenderer; }
+
+const std::string& Gym::Renderer() { return g_sRenderer; }
 
 void Gym::OnStageFinished() { g_bFinished = true; }
 
