@@ -1,0 +1,108 @@
+on:
+  push:
+    tags:
+      - 'gym-v*'
+  workflow_dispatch:
+
+name: Gym release
+
+# A gym-v<version> tag publishes what itgmania-gym <version> downloads: one
+# game pack per platform, their SHA256SUMS, and the package's wheel.
+jobs:
+  pack:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            pack: ITGmania-gym-linux-x86_64
+          - os: macos-15
+            pack: ITGmania-gym-macos-arm64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: The tag is the package's version
+        if: startsWith(github.ref, 'refs/tags/gym-v')
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' python/src/itgmania_gym/__init__.py)
+          test "gym-v$version" = "${GITHUB_REF_NAME}"
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-env
+        with:
+          os: ${{ matrix.os }}
+          ccache: 'false'
+
+      - name: Install a virtual display
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ env.CMAKE_FLAGS }}
+          cmake --build build ${{ env.CMAKE_BUILD_FLAGS }}
+
+      - name: Lay out and compress the pack
+        run: |
+          tools/gym/make_pack.sh "pack/${{ matrix.pack }}"
+          tar -C "pack/${{ matrix.pack }}" -cJf "${{ matrix.pack }}.tar.xz" .
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The pack, not the checkout, is what users get: play it.
+      - name: Play the pack
+        timeout-minutes: 20
+        working-directory: python
+        run: |
+          python -m pip install -e ".[dev]"
+          mkdir -p /tmp/unpacked && tar -C /tmp/unpacked -xJf "../${{ matrix.pack }}.tar.xz"
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            export ITGMANIA_GYM_BIN=/tmp/unpacked/itgmania
+            xvfb-run -a -s "-screen 0 1280x1024x24" python -m pytest -q
+          else
+            export ITGMANIA_GYM_BIN=/tmp/unpacked/ITGmania.app/Contents/MacOS/ITGmania
+            python -m pytest -q
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.pack }}
+          path: ${{ matrix.pack }}.tar.xz
+
+  release:
+    needs: pack
+    if: startsWith(github.ref, 'refs/tags/gym-v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel --outdir dist python
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          sha256sum *.tar.xz > SHA256SUMS
+          gh release create "${GITHUB_REF_NAME}" *.tar.xz *.whl SHA256SUMS \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "ITGmania with gym mode: game packs for itgmania-gym ${GITHUB_REF_NAME#gym-v} (macOS arm64, Linux x86_64) and its wheel."
