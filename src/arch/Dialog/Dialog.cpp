@@ -11,13 +11,11 @@
 #include "RageUtil.h"
 #include "StdString.h"
 #include "global.h"
-#include "gym/GymClock.h"
 
 static Preference<std::string> g_sIgnoredDialogs("IgnoredDialogs", "");
 
 DialogDriver* MakeDialogDriver() {
-  // A gym process is never seen: a dialog would wait forever for a click.
-  std::string sDrivers = GymClock::IsEnabled() ? "null" : "win32,cocoa,null";
+  std::string sDrivers = "win32,cocoa,null";
   std::vector<std::string> asDriversToTry;
   split(sDrivers, ",", asDriversToTry, true);
 

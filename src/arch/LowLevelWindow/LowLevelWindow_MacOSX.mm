@@ -10,6 +10,7 @@
 #include <dlfcn.h>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/OpenGL.h>
@@ -155,21 +156,40 @@ static NSOpenGLContext* CreateOGLContext(
       break;
   }
 
-  NSOpenGLPixelFormat* pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
+  NSOpenGLContext* context = nil;
+  for (int iTry = 0; iTry < 2 && !context; ++iTry) {
+    if (iTry == 1) {
+      // A gym process on a Mac with no GPU (a CI virtual machine) draws with
+      // Apple's software renderer.
+      if (!GymClock::IsEnabled()) {
+        break;
+      }
+      attrs[0] = NSOpenGLPFARendererID;  // instead of NoRecovery, Accelerated
+      attrs[1] = NSOpenGLPixelFormatAttribute(kCGLRendererGenericFloatID);
+    }
+    NSOpenGLPixelFormat* pixelFormat = [[NSOpenGLPixelFormat alloc] initWithAttributes:attrs];
 
-  if (!pixelFormat) {
-    return nil;
+    if (!pixelFormat) {
+      continue;
+    }
+
+    context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:share];
+
+    bShared = share && context;
+    if (!context) {
+      context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
+    }
+
+    [pixelFormat release];
+
+    static bool s_bSaid = false;
+    if (context && iTry == 1 && !s_bSaid) {
+      s_bSaid = true;
+      std::fprintf(
+          stderr, "itgmania gym: no accelerated OpenGL here: drawing with Apple's "
+                  "software renderer\n");
+    }
   }
-
-  NSOpenGLContext* context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat
-                                                        shareContext:share];
-
-  bShared = share && context;
-  if (!context) {
-    context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat shareContext:nil];
-  }
-
-  [pixelFormat release];
 
   return context;
 }

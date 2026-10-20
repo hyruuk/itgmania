@@ -36,6 +36,16 @@ class DialogDriver {
 class DialogDriver_Null : public DialogDriver {};
 #define USE_DIALOG_DRIVER_NULL
 
+// A gym process's: it is never seen, so it says its errors on stderr rather
+// than open a dialog that would wait forever for a click.
+class DialogDriver_Gym : public DialogDriver {
+ public:
+  void Error(std::string sMessage, std::string sID) override {
+    std::fprintf(stderr, "itgmania gym: %s\n", sMessage.c_str());
+    std::fflush(stderr);
+  }
+};
+
 typedef DialogDriver* (*CreateDialogDriverFn)();
 struct RegisterDialogDriver {
   static std::map<istring, CreateDialogDriverFn>* g_pRegistrees;

@@ -7,6 +7,7 @@
 #include "RageLog.h"
 #include "RageUtil.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 std::map<istring, CreateDialogDriverFn>* RegisterDialogDriver::g_pRegistrees;
 RegisterDialogDriver::RegisterDialogDriver(
@@ -20,9 +21,10 @@ RegisterDialogDriver::RegisterDialogDriver(
 }
 
 REGISTER_DIALOG_DRIVER_CLASS(Null);
+REGISTER_DIALOG_DRIVER_CLASS(Gym);
 
 DialogDriver* DialogDriver::Create() {
-  std::string sDrivers = "win32,macosx,null";
+  std::string sDrivers = GymClock::IsEnabled() ? "gym" : "win32,macosx,null";
   std::vector<std::string> asDriversToTry;
   split(sDrivers, ",", asDriversToTry, true);
 
