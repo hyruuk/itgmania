@@ -47,16 +47,40 @@ jobs:
 
       - name: Self-test (Linux, Xvfb)
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         run: xvfb-run -a -s "-screen 0 1280x1024x24" tools/gym/selftest.sh selftest
 
       - name: Self-test (macOS)
         if: runner.os == 'macOS'
+        timeout-minutes: 10
         run: tools/gym/selftest.sh selftest
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the Python package
+        run: python -m pip install -e "python[dev]"
+
+      - name: Python tests (Linux, Xvfb)
+        if: runner.os == 'Linux'
+        timeout-minutes: 20
+        working-directory: python
+        run: xvfb-run -a -s "-screen 0 1280x1024x24" python -m pytest -q
+
+      - name: Python tests (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 20
+        working-directory: python
+        run: python -m pytest -q
 
       - name: Keep the self-test output
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: gym-selftest-${{ matrix.os }}
-          path: selftest/a/out
+          # The output, and the game's own logs, which say where a run stopped.
+          path: |
+            selftest/*/out
+            selftest/*/data/Logs
           if-no-files-found: ignore
