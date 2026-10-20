@@ -107,3 +107,8 @@ BuildLog.htm
 *.pc
 *.d
 *.lastcodeanalysissucceeded
+
+# Python (python/, the itgmania-gym package)
+__pycache__/
+*.egg-info/
+python/dist/

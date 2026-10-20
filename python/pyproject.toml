@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "itgmania-gym"
+# The version lives in src/itgmania_gym/__init__.py: it is also the release tag
+# the package fetches its game pack from (gym-v<version>), so a wheel and its
+# engine cannot drift apart.
+dynamic = ["version"]
+description = "ITGmania (StepMania) as a Gymnasium environment, driving the real game in lock step"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+keywords = ["gymnasium", "reinforcement-learning", "stepmania", "itgmania", "rhythm", "games"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+]
+dependencies = ["gymnasium>=1.0", "numpy>=1.21"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-timeout>=2.0"]
+
+[project.urls]
+Homepage = "https://github.com/hyruuk/itgmania"
+Game = "https://www.itgmania.com"
+
+[tool.hatch.version]
+path = "src/itgmania_gym/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/itgmania_gym"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# A blocked pipe looks like a test that never ends; every test launches the
+# real game, which takes well under a second.
+timeout = 300
