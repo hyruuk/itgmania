@@ -157,9 +157,11 @@ void SetPreference(const std::string& sName, const std::string& sValue) {
   }
 }
 
-// The preferences gym mode owns; --gym-pref may not change them.
-const std::vector<std::pair<std::string, std::string>>& GymPreferences() {
-  static std::vector<std::pair<std::string, std::string>> prefs;
+using PreferenceList = std::vector<std::pair<std::string, std::string>>;
+
+// The preferences gym mode depends on; --gym-pref may not change them.
+const PreferenceList& OwnedPreferences() {
+  static PreferenceList prefs;
   if (!prefs.empty()) {
     return prefs;
   }
@@ -177,18 +179,12 @@ const std::vector<std::pair<std::string, std::string>>& GymPreferences() {
       // Otherwise the first run on a machine resets the frame size.
       {"LastSeenVideoDriver", "OpenGL"},
       {"ShowLoadingWindow", "0"},
-      {"ShowStats", "0"},
       // Drivers that read no clock, device or network of their own.
       {"SoundDrivers", "Gym"},
       {"InputDrivers", "Gym"},
       {"MovieDrivers", "Null"},
       {"HttpEnabled", "0"},
       {"MemoryCards", "0"},
-      // Presses arrive stamped by the step; the mixer is the audio clock.
-      {"InputDebounceTime", "0"},
-      {"GlobalOffsetSeconds", "0"},
-      {"DefaultSyncOffset", "NULL"},
-      {"SoundVolume", "1"},
       // Nothing on screen that is drawn at random or by date.
       {"EasterEggs", "0"},
       {"ShowDancingCharacters", "Off"},
@@ -197,6 +193,21 @@ const std::vector<std::pair<std::string, std::string>>& GymPreferences() {
       {"EventMode", "1"},
       {"TestInitialScreen", "ScreenGameplay"},
       {"AllowMultipleInstances", "1"},
+  };
+  return prefs;
+}
+
+// What a gym run plays with unless --gym-pref says otherwise.
+const PreferenceList& DefaultPreferences() {
+  static const PreferenceList prefs = {
+      // Presses arrive stamped by the step, and the mixer is the audio clock,
+      // so no latency needs hiding. A setup whose sound reaches the ears late
+      // sets GlobalOffsetSeconds to minus that delay.
+      {"InputDebounceTime", "0"},
+      {"GlobalOffsetSeconds", "0"},
+      {"DefaultSyncOffset", "NULL"},
+      {"SoundVolume", "1"},
+      {"ShowStats", "0"},
       {"AutogenGroupCourses", "0"},
   };
   return prefs;
@@ -204,7 +215,7 @@ const std::vector<std::pair<std::string, std::string>>& GymPreferences() {
 
 void ApplyUserPreferences() {
   std::set<std::string> owned = {"AutoPlay", "ConstantUpdateDeltaSeconds"};
-  for (const std::pair<std::string, std::string>& pref : GymPreferences()) {
+  for (const std::pair<std::string, std::string>& pref : OwnedPreferences()) {
     owned.insert(pref.first);
   }
   for (const std::pair<std::string, std::string>& pref : g_Options.prefs) {
@@ -643,8 +654,10 @@ void Gym::MountUserFilesystems() {
 }
 
 void Gym::ApplyPreferences() {
-  for (const std::pair<std::string, std::string>& pref : GymPreferences()) {
-    SetPreference(pref.first, pref.second);
+  for (const PreferenceList& prefs : {OwnedPreferences(), DefaultPreferences()}) {
+    for (const std::pair<std::string, std::string>& pref : prefs) {
+      SetPreference(pref.first, pref.second);
+    }
   }
   ApplyUserPreferences();
   if (g_Options.selftest_steps > 0) {
