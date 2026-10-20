@@ -94,6 +94,8 @@
 #include "XmlFile.h"
 #include "XmlFileUtil.h"
 #include "global.h"
+#include "gym/Gym.h"
+#include "gym/GymClock.h"
 
 // Defines
 #define SHOW_LIFE_METER_FOR_DISABLED_PLAYERS \
@@ -3178,7 +3180,11 @@ void ScreenGameplay::HandleScreenMessage(const ScreenMessage SM) {
       SaveReplay();
     }
 
-    if (AdjustSync::IsSyncDataChanged()) {
+    // A gym episode ends with the stage: the screen stays where it is, and
+    // the gym reports it finished.
+    if (GymClock::IsEnabled()) {
+      Gym::OnStageFinished();
+    } else if (AdjustSync::IsSyncDataChanged()) {
       ScreenSaveSync::PromptSaveSync(SM_GoToNextScreen);
     } else {
       HandleScreenMessage(SM_GoToNextScreen);

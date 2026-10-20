@@ -21,8 +21,9 @@ run() {
   mkdir -p "$OUT/$1/data"
   ITGMANIA_GYM=1 "$BIN" --gym-selftest="$STEPS" --gym-selftest-dir="$OUT/$1/out" \
     --gym-selftest-frame-every=60 --gym-fps="$FPS" --gym-screensize=854x480 \
-    --gym-seed=1 --gym-datadir="$OUT/$1/data" --player=1 \
-    "--mode=style,single;playmode,regular;song,StepMania 5/MechaTribe Assault;steps,Medium;mod,clap,failoff"
+    --gym-seed=1 --gym-datadir="$OUT/$1/data" \
+    "--gym-song=StepMania 5/MechaTribe Assault" --gym-steps-type=dance-single \
+    --gym-difficulty=Medium --gym-mods=M250,clap,failoff --gym-game-mode=ITG
 }
 
 run a

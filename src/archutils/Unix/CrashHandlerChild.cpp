@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "gym/GymClock.h"
 #include "ver.h"
 
 bool child_read(int fd, void* p, int size);
@@ -197,7 +198,10 @@ static void child_process() {
 #endif
   sCrashInfoPath += "/crashinfo.txt";
 
-  FILE* CrashDump = fopen(sCrashInfoPath.c_str(), "w+");
+  // A gym process has nobody to show a crash to: its report goes to stderr,
+  // which the program that launched it keeps.
+  const bool bGym = GymClock::IsEnabled();
+  FILE* CrashDump = bGym ? stderr : fopen(sCrashInfoPath.c_str(), "w+");
   if (CrashDump == nullptr) {
     fprintf(
         stderr, "Couldn't open %s: %s\n", sCrashInfoPath.c_str(),
@@ -271,6 +275,10 @@ static void child_process() {
   }
   fprintf(CrashDump, "\n");
   fprintf(CrashDump, "-- End of report\n");
+  if (bGym) {
+    fflush(CrashDump);
+    return;
+  }
   fclose(CrashDump);
 
 #if defined(MACOSX)

@@ -3513,6 +3513,7 @@ void Player::SetJudgment(
     msg.SetParam("Player", m_pPlayerState->m_PlayerNumber);
     msg.SetParam("MultiPlayer", m_pPlayerState->m_mp);
     msg.SetParam("FirstTrack", iTrack);
+    msg.SetParam("Row", iRow);
     msg.SetParam("TapNoteScore", tns);
     msg.SetParam("Early", fTapNoteOffset < 0.0f);
     msg.SetParam("TapNoteOffset", tn.result.fTapNoteOffset);
