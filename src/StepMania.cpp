@@ -82,6 +82,8 @@
 #include "StatsManager.h"
 #include "ThemeManager.h"
 #include "UnlockManager.h"
+#include "gym/Gym.h"
+#include "gym/GymClock.h"
 #include "ver.h"
 
 void ShutdownGame();
@@ -94,7 +96,8 @@ static Preference<bool> g_bAllowMultipleInstances(
 void StepMania::GetPreferredVideoModeParams(VideoModeParams& paramsOut) {
   // resolution handling code that probably needs fixing
   int iWidth = PREFSMAN->m_iDisplayWidth;
-  if (PREFSMAN->m_bWindowed) {
+  // A gym process's frame is exactly the size it was asked for.
+  if (PREFSMAN->m_bWindowed && !GymClock::IsEnabled()) {
     // float fRatio = PREFSMAN->m_iDisplayHeight;
     // iWidth = PREFSMAN->m_iDisplayHeight * fRatio;
     iWidth =
@@ -774,6 +777,12 @@ int sm_main(int argc, char* argv[]) {
 
   SetCommandlineArguments(argc, argv);
 
+  // A gym process checks its arguments and seeds its random numbers before
+  // anything else can draw one.
+  if (GymClock::IsEnabled()) {
+    Gym::Init();
+  }
+
   // Set up arch hooks first.  This may set up crash handling.
   HOOKS = ArchHooks::Create();
   HOOKS->Init();
@@ -793,7 +802,9 @@ int sm_main(int argc, char* argv[]) {
   FILEMAN->MountInitialFilesystems();
 
   bool bPortable = DoesFileExist("/Portable.ini");
-  if (!bPortable) {
+  if (GymClock::IsEnabled()) {
+    Gym::MountUserFilesystems();
+  } else if (!bPortable) {
     FILEMAN->MountUserFilesystems();
   }
 
@@ -839,6 +850,9 @@ int sm_main(int argc, char* argv[]) {
   /* One of the above filesystems might contain files that affect preferences
    * (e.g. Data/Static.ini). Re-read preferences. */
   PREFSMAN->ReadPrefsFromDisk();
+  if (GymClock::IsEnabled()) {
+    Gym::ApplyPreferences();
+  }
   ApplyLogPreferences();
 
   // This needs PREFSMAN.
@@ -856,7 +870,9 @@ int sm_main(int argc, char* argv[]) {
     RageException::Throw("%s", COULDNT_OPEN_LOADING_WINDOW.GetValue().c_str());
   }
 
-  srand(time(nullptr));  // seed number generator
+  if (!GymClock::IsEnabled()) {
+    srand(time(nullptr));  // seed number generator
+  }
 
   /* Do this early, so we have debugging output if anything else fails. LOG and
    * Dialog must be set up first. It shouldn't take long, but it might take a
@@ -985,7 +1001,11 @@ int sm_main(int argc, char* argv[]) {
   CodeDetector::RefreshCacheItems();
 
   // Run the main loop.
-  GameLoop::RunGameLoop();
+  if (GymClock::IsEnabled()) {
+    Gym::Run();
+  } else {
+    GameLoop::RunGameLoop();
+  }
 
   PREFSMAN->SavePrefsToDisk();
 

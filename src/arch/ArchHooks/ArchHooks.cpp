@@ -7,6 +7,7 @@
 #include "RageLog.h"
 #include "RageThreads.h"
 #include "arch/arch_default.h"
+#include "gym/GymClock.h"
 
 bool ArchHooks::g_bQuitting = false;
 bool ArchHooks::g_bToggleWindowed = false;
@@ -31,7 +32,10 @@ void ArchHooks::SetToggleWindowed() {
 }
 
 void ArchHooks::SetHasFocus(bool bHasFocus) {
-  if (bHasFocus == m_bHasFocus) {
+  // A gym process's window is never shown, so it never has the window
+  // system's focus; it has the gym's, always. Without focus, input is dropped
+  // and every frame sleeps.
+  if (bHasFocus == m_bHasFocus || GymClock::IsEnabled()) {
     return;
   }
   m_bHasFocus = bHasFocus;

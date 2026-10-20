@@ -6,6 +6,14 @@
 
 #include "LuaBinding.h"
 #include "LuaManager.h"
+#include "gym/GymClock.h"
+
+unsigned int DefaultRandomSeed() {
+  if (GymClock::IsEnabled()) {
+    return 5489u;  // std::mt19937's own default seed
+  }
+  return static_cast<unsigned int>(time(nullptr));
+}
 
 RandomGen g_RandomNumberGenerator;
 
@@ -63,3 +71,8 @@ const luaL_Reg MersenneTwisterTable[] = {
 }  // namespace
 
 LUA_REGISTER_NAMESPACE(MersenneTwister);
+
+void SeedRandomNumberGenerators(unsigned int iSeed) {
+  g_RandomNumberGenerator.seed(iSeed);
+  g_LuaPRNG.seed(iSeed);
+}

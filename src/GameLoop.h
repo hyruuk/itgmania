@@ -6,6 +6,9 @@
 namespace GameLoop {
 void RunGameLoop();
 void UpdateAllButDraw();
+// One pass of the main loop with no pacing around it: pending game and theme
+// changes, one update and one draw. The gym loop runs one per step.
+void UpdateAndDraw();
 void SetUpdateRate(float fUpdateRate);
 float GetUpdateRate();
 void ChangeTheme(const std::string& sNewTheme);

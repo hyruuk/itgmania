@@ -35,6 +35,7 @@
 #include "TimingSegments.h"
 #include "arch/Sound/RageSoundDriver.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 GameSoundManager* SOUND = nullptr;
 
@@ -411,6 +412,13 @@ static void StartQueuedSounds() {
 }
 
 void GameSoundManager::Flush() {
+  // A gym process has no music thread: queued sounds start here, on the main
+  // thread, at a point of the step that does not depend on scheduling.
+  if (GymClock::IsEnabled()) {
+    StartQueuedSounds();
+    return;
+  }
+
   g_Mutex->Lock();
   g_bFlushing = true;
 
@@ -460,8 +468,10 @@ GameSoundManager::GameSoundManager() {
   g_UpdatingTimer = true;
 
   g_Shutdown = false;
-  MusicThread.SetName("Music thread");
-  MusicThread.Create(MusicThread_start, this);
+  if (!GymClock::IsEnabled()) {
+    MusicThread.SetName("Music thread");
+    MusicThread.Create(MusicThread_start, this);
+  }
 
   // Register with Lua.
   {
@@ -483,7 +493,9 @@ GameSoundManager::~GameSoundManager() {
   g_Shutdown = true;
   g_Mutex->Broadcast();
   g_Mutex->Unlock();
-  MusicThread.Wait();
+  if (MusicThread.IsCreated()) {
+    MusicThread.Wait();
+  }
   LOG->Trace("Music start thread shut down.");
 
   RageUtil::SafeDelete(g_Playing);

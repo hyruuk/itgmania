@@ -38,6 +38,7 @@
 #include "RageUtil/Regex.h"
 #include "StdString.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 const std::string CUSTOM_SONG_PATH = "/@mem/";
 
@@ -329,6 +330,9 @@ std::string NormalizeDecimal(float num) {
 }
 
 struct tm GetLocalTime() {
+  if (GymClock::IsEnabled()) {
+    return GymClock::CalendarTime();
+  }
   const time_t t = time(nullptr);
   struct tm tm;
   localtime_r(&t, &tm);

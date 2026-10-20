@@ -9,6 +9,7 @@
 #include "RageUtil.h"
 #include "StdString.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 DateTime::DateTime() { Init(); }
 
@@ -93,9 +94,13 @@ bool DateTime::operator>=(const DateTime& other) const {
 }
 
 DateTime DateTime::GetNowDateTime() {
-  time_t now = time(nullptr);
   tm tNow;
-  localtime_r(&now, &tNow);
+  if (GymClock::IsEnabled()) {
+    tNow = GymClock::CalendarTime();
+  } else {
+    time_t now = time(nullptr);
+    localtime_r(&now, &tNow);
+  }
   DateTime dtNow;
 #define COPY_M(v) dtNow.v = tNow.v;
   COPY_M(tm_year);

@@ -27,9 +27,11 @@ source_group("Arch Specific\\\\Threads"
 list(APPEND SMDATA_ARCH_SOUND_SRC
             "arch/Sound/RageSoundDriver.cpp"
             "arch/Sound/RageSoundDriver_Generic_Software.cpp"
+            "arch/Sound/RageSoundDriver_Gym.cpp"
             "arch/Sound/RageSoundDriver_Null.cpp")
 
 list(APPEND SMDATA_ARCH_SOUND_HPP "arch/Sound/RageSoundDriver.h"
+            "arch/Sound/RageSoundDriver_Gym.h"
             "arch/Sound/RageSoundDriver_Null.h")
 
 if(WIN32)
@@ -251,9 +253,11 @@ source_group("Arch Specific\\\\Lights"
              ${SMDATA_ARCH_LIGHTS_HPP})
 
 list(APPEND SMDATA_ARCH_INPUT_SRC "arch/InputHandler/InputHandler.cpp"
+            "arch/InputHandler/InputHandler_Gym.cpp"
             "arch/InputHandler/InputHandler_PumpHID.cpp"
             "arch/InputHandler/InputHandler_MonkeyKeyboard.cpp")
 list(APPEND SMDATA_ARCH_INPUT_HPP "arch/InputHandler/InputHandler.h"
+            "arch/InputHandler/InputHandler_Gym.h"
             "arch/InputHandler/InputHandler_PumpHID.h"
             "arch/InputHandler/InputHandler_MonkeyKeyboard.h")
 

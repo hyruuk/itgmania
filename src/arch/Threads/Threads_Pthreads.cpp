@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
@@ -16,6 +17,7 @@
 #include "RageUtil.h"
 #include "Threads_Pthreads.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 #if defined(MACOSX)
 #include "archutils/Darwin/DarwinThreadHelpers.h"
@@ -305,7 +307,19 @@ bool EventImpl_Pthreads::Wait(RageTimer* pTimeout) {
    * (no condattr_setclock), pthread_cond_timedwait has an inherent race
    * condition: the system clock may change before we call it. */
   timespec abstime;
-  if (g_CondattrSetclock != nullptr || GetClock() == CLOCK_REALTIME) {
+  if (GymClock::IsEnabled()) {
+    /* RageTimer reads the gym's virtual clock, so its value is no deadline on
+     * the clock this condition waits on: wait the remaining time from now on
+     * that clock instead. */
+    clockid_t clock =
+        g_CondattrSetclock != nullptr ? GetClock() : CLOCK_REALTIME;
+    clock_gettime(clock, &abstime);
+    const int64_t iWaitNs =
+        static_cast<int64_t>(std::max(0.0f, -pTimeout->Ago()) * 1e9f);
+    const int64_t iNs = abstime.tv_nsec + iWaitNs;
+    abstime.tv_sec += static_cast<time_t>(iNs / 1000000000);
+    abstime.tv_nsec = static_cast<long>(iNs % 1000000000);
+  } else if (g_CondattrSetclock != nullptr || GetClock() == CLOCK_REALTIME) {
     /* If we support condattr_setclock, we'll set the condition to use
      * the same clock as RageTimer and can use it directly. If the
      * clock is CLOCK_REALTIME, that's the default anyway. */

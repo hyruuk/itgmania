@@ -87,6 +87,20 @@ class RageSoundDriver : public RageDriver {
    * above normal priority but not realtime. */
   virtual void SetupDecodingThread() {}
 
+  /* For a driver whose clock moves only when it is told to (the gym driver):
+   * there is no decoding thread, and the driver calls DecodePlayingSounds
+   * itself before each Mix, so what is mixed never depends on thread timing.
+   * Call this instead of StartDecodeThread. */
+  void DecodeOnCallingThread() { m_bDecodeOnCallingThread = true; }
+
+  /* Fill every playing sound's buffer, as the decoding thread does on each
+   * pass. */
+  void DecodePlayingSounds();
+
+  /* Move what Mix recorded into each sound's playback history now, rather
+   * than at the next Update. */
+  void DrainMixedPositions();
+
   /*
    * Read mixed data.
    *
@@ -236,6 +250,7 @@ class RageSoundDriver : public RageDriver {
   mutable int64_t m_iVMaxHardwareFrame;
 
   bool m_bShutdownDecodeThread;
+  bool m_bDecodeOnCallingThread;
 
   static int DecodeThread_start(void* p);
   void DecodeThread();

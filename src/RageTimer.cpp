@@ -25,17 +25,23 @@
 #include <cstdint>
 
 #include "arch/ArchHooks/ArchHooks.h"
+#include "gym/GymClock.h"
 
 // Intialize important variables and definitions
 constexpr uint64_t ONE_SECOND_IN_MICROSECONDS_ULL = 1000000ULL;
 constexpr int64_t ONE_SECOND_IN_MICROSECONDS_LL = 1000000LL;
 constexpr double ONE_SECOND_IN_MICROSECONDS_DBL = 1000000.0;
 const RageTimer RageZeroTimer(0, 0);
-static const uint64_t g_iStartTime = ArchHooks::GetSystemTimeInMicroseconds();
 
+// In gym mode every timer reads the gym's clock, which only the gym loop moves.
 static inline uint64_t GetTime() noexcept {
+  if (GymClock::IsEnabled()) {
+    return GymClock::NowMicroseconds();
+  }
   return ArchHooks::GetSystemTimeInMicroseconds();
 }
+
+static const uint64_t g_iStartTime = GetTime();
 
 /* The accuracy of RageTimer::GetTimeSinceStart() is directly tied to the
  * stability of the clock sync. Maintaining precision here is crucial. Too

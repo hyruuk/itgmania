@@ -5,6 +5,7 @@
 #import "RageUtil.h"
 #import "arch/ArchHooks/ArchHooks.h"
 #import "global.h"
+#import "gym/GymClock.h"
 
 #include <dlfcn.h>
 #include <cstddef>
@@ -105,7 +106,10 @@ class AutoreleasePool {
   [m_Window setContentSize:contentRect.size];
   [m_Window setTitle:[NSString stringWithUTF8String:p.sWindowTitle.c_str()]];
   [m_Window center];
-  [m_Window makeKeyAndOrderFront:nil];
+  // A gym process renders offscreen and is never shown.
+  if (!GymClock::IsEnabled()) {
+    [m_Window makeKeyAndOrderFront:nil];
+  }
 }
 @end
 

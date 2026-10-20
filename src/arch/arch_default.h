@@ -22,9 +22,12 @@ inline const std::vector<std::string>& GetDefaultMovieDriverList() {
   return movieDriverList;
 }
 
+// Every list ends with "Gym": a driver that is not listed here can't be
+// chosen, and the gym driver refuses to start outside gym mode, so last it
+// never replaces a working one.
 inline const std::vector<std::string>& GetDefaultSoundDriverList() {
   static const std::vector<std::string> soundDriverList = {
-      "DirectSound-sw", "WASAPI", "WaveOut", "WDMKS", "Null"};
+      "DirectSound-sw", "WASAPI", "WaveOut", "WDMKS", "Null", "Gym"};
   return soundDriverList;
 }
 
@@ -45,7 +48,8 @@ inline const std::vector<std::string>& GetDefaultMovieDriverList() {
 }
 
 inline const std::vector<std::string>& GetDefaultSoundDriverList() {
-  static const std::vector<std::string> soundDriverList = {"AudioUnit", "Null"};
+  static const std::vector<std::string> soundDriverList = {
+      "AudioUnit", "Null", "Gym"};
   return soundDriverList;
 }
 
@@ -87,7 +91,7 @@ inline const std::vector<std::string>& GetDefaultMovieDriverList() {
 // PulseAudio daemon has been suspended by/for jackd.
 inline const std::vector<std::string>& GetDefaultSoundDriverList() {
   static const std::vector<std::string> soundDriverList = {
-      "Pulse", "ALSA-sw", "OSS", "JACK", "Null"};
+      "Pulse", "ALSA-sw", "OSS", "JACK", "Null", "Gym"};
   return soundDriverList;
 }
 #else

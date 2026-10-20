@@ -43,6 +43,7 @@
 #include "RageTimer.h"
 #include "RageUtil.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 RageSoundParams::RageSoundParams()
     : m_StartSecond(0),
@@ -214,7 +215,9 @@ bool RageSound::Load(
   }
 
   m_pSource = new RageSoundReader_Extend(m_pSource);
-  if (bNeedBuffer) {
+  // In gym mode the mixer decodes on demand: a buffering thread could fall
+  // behind, and what it had not read yet would play as silence.
+  if (bNeedBuffer && !GymClock::IsEnabled()) {
     m_pSource = new RageSoundReader_ThreadedBuffer(m_pSource);
   }
   m_pSource = new RageSoundReader_PostBuffering(m_pSource);

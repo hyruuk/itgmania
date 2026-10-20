@@ -1,0 +1,62 @@
+on:
+  push:
+    branches:
+      - gym
+  pull_request:
+    branches:
+      - gym
+  workflow_dispatch:
+
+name: Gym CI
+
+# The platforms the gym mode ships on: build, then play the lock-step
+# self-test twice and check that it is exact and reproducible.
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04 keeps the glibc floor of the binary low.
+          - os: ubuntu-22.04
+            name: Linux (x86_64)
+          - os: macos-15
+            name: macOS (arm64)
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-env
+        with:
+          os: ${{ matrix.os }}
+          ccache: 'true'
+
+      - name: Install a virtual display
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ env.CMAKE_FLAGS }}
+
+      - name: Build
+        run: cmake --build build ${{ env.CMAKE_BUILD_FLAGS }}
+
+      - name: Self-test (Linux, Xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a -s "-screen 0 1280x1024x24" tools/gym/selftest.sh selftest
+
+      - name: Self-test (macOS)
+        if: runner.os == 'macOS'
+        run: tools/gym/selftest.sh selftest
+
+      - name: Keep the self-test output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gym-selftest-${{ matrix.os }}
+          path: selftest/a/out
+          if-no-files-found: ignore

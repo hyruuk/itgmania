@@ -67,6 +67,8 @@ class RageDisplay_Legacy : public RageDisplay {
       int width, int height);
   void DeleteTexture(uintptr_t iTexHandle);
   bool UseOffscreenRenderTarget();
+  // EndFrame of a gym process: read the frame back, never swap.
+  void EndGymFrame();
   RageSurface* GetTexture(uintptr_t iTexture);
   RageTextureLock* CreateTextureLock();
 

@@ -33,6 +33,8 @@
 #include "Sprite.h"
 #include "arch/LowLevelWindow/LowLevelWindow.h"
 #include "global.h"
+#include "gym/Gym.h"
+#include "gym/GymClock.h"
 
 using namespace RageDisplay_Legacy_Helpers;
 
@@ -748,7 +750,10 @@ void SetupExtensions() {
 }
 
 bool RageDisplay_Legacy::UseOffscreenRenderTarget() {
-  if (!GetActualVideoModeParams().renderOffscreen || !TEXTUREMAN) {
+  // A gym process always draws offscreen: its window is never shown, and the
+  // contents of a hidden window's framebuffer are undefined.
+  if ((!GetActualVideoModeParams().renderOffscreen && !GymClock::IsEnabled()) ||
+      !TEXTUREMAN) {
     return false;
   }
 
@@ -868,15 +873,18 @@ int RageDisplay_Legacy::GetMaxTextureSize() const {
 
 bool RageDisplay_Legacy::BeginFrame() {
   /* We do this in here, rather than ResolutionChanged, or we won't update the
-   * viewport for the concurrent rendering context. */
-  int fWidth = g_pWind->GetActualVideoModeParams().windowWidth;
-  int fHeight = g_pWind->GetActualVideoModeParams().windowHeight;
+   * viewport for the concurrent rendering context. A gym process leaves its
+   * window's framebuffer alone: a never-shown window may have none. */
+  if (!GymClock::IsEnabled()) {
+    int fWidth = g_pWind->GetActualVideoModeParams().windowWidth;
+    int fHeight = g_pWind->GetActualVideoModeParams().windowHeight;
 
-  glViewport(0, 0, fWidth, fHeight);
+    glViewport(0, 0, fWidth, fHeight);
 
-  glClearColor(0, 0, 0, 0);
-  SetZWrite(true);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0, 0, 0, 0);
+    SetZWrite(true);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
 
   bool beginFrame = RageDisplay::BeginFrame();
   if (beginFrame && UseOffscreenRenderTarget()) {
@@ -887,6 +895,11 @@ bool RageDisplay_Legacy::BeginFrame() {
 }
 
 void RageDisplay_Legacy::EndFrame() {
+  if (GymClock::IsEnabled()) {
+    EndGymFrame();
+    return;
+  }
+
   if (UseOffscreenRenderTarget()) {
     offscreenRenderTarget->FinishRenderingTo();
     Sprite fullscreenSprite;
@@ -922,6 +935,22 @@ void RageDisplay_Legacy::EndFrame() {
 
   g_pWind->Update();
 
+  RageDisplay::EndFrame();
+}
+
+void RageDisplay_Legacy::EndGymFrame() {
+  if (UseOffscreenRenderTarget()) {
+    // Read the frame while its target is still bound. The target flips Y, so
+    // the rows come back top first.
+    const int iWidth = GetActualVideoModeParams().width;
+    const int iHeight = GetActualVideoModeParams().height;
+    uint8_t* pFrame = Gym::FrameDestination(iWidth, iHeight);
+    if (pFrame != nullptr) {
+      glPixelStorei(GL_PACK_ALIGNMENT, 1);
+      glReadPixels(0, 0, iWidth, iHeight, GL_RGB, GL_UNSIGNED_BYTE, pFrame);
+    }
+    offscreenRenderTarget->FinishRenderingTo();
+  }
   RageDisplay::EndFrame();
 }
 

@@ -11,6 +11,7 @@
 #include "arch/ArchHooks/ArchHooks.h"
 #include "arch/InputHandler/InputHandler_NSEvent.hpp"
 #include "archutils/Darwin/CocoaEventDispatcher.h"
+#include "gym/GymClock.h"
 
 @interface NSApplication (PrivateShutUpWarning)
 - (void)setAppleMenu:(NSMenu*)menu;
@@ -206,6 +207,15 @@ int main(int argc, char** argv) {
 
   // Ensure the application object is initialised, this sets NSApp.
   [SMApplication sharedApplication];
+
+  if (GymClock::IsEnabled()) {
+    // A gym process runs behind another program's window: no Dock icon, no
+    // menu bar, never the active app, and never napped in the background.
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+    [[[NSProcessInfo processInfo]
+        beginActivityWithOptions:(NSActivityUserInitiated | NSActivityLatencyCritical)
+                          reason:@"gym steps are latency critical"] retain];
+  }
 
   // Set up NSException handler.
   NSSetUncaughtExceptionHandler(HandleNSException);

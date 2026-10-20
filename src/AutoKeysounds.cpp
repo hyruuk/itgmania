@@ -42,6 +42,7 @@
 #include "RageUtil.h"
 #include "Song.h"
 #include "global.h"
+#include "gym/GymClock.h"
 
 void AutoKeysounds::Load(PlayerNumber pn, const NoteData& ndAutoKeysoundsOnly) {
   m_ndAutoKeysoundsOnly[pn] = ndAutoKeysoundsOnly;
@@ -118,6 +119,17 @@ void AutoKeysounds::LoadAutoplaySoundsInto(RageSoundReader_Chain* pChain) {
   }
 }
 
+namespace {
+// A song track read ahead on its own thread, except in gym mode, where the
+// mixer decodes on demand: a thread that fell behind would play as silence.
+RageSoundReader* Buffered(RageSoundReader* pReader) {
+  if (GymClock::IsEnabled()) {
+    return pReader;
+  }
+  return new RageSoundReader_ThreadedBuffer(pReader);
+}
+}  // namespace
+
 void AutoKeysounds::LoadTracks(
     const Song* pSong, RageSoundReader*& pShared, RageSoundReader*& pPlayer1,
     RageSoundReader*& pPlayer2) {
@@ -161,7 +173,7 @@ void AutoKeysounds::LoadTracks(
     // Load the buffering filter before the effects filters, so effects aren't
     // delayed.
     pSongReader = new RageSoundReader_Extend(pSongReader);
-    pSongReader = new RageSoundReader_ThreadedBuffer(pSongReader);
+    pSongReader = Buffered(pSongReader);
     pShared = pSongReader;
   } else if (!vpSounds.empty()) {
     RageSoundReader_Merge* pMerge = new RageSoundReader_Merge;
@@ -176,7 +188,7 @@ void AutoKeysounds::LoadTracks(
     // Load the buffering filter before the effects filters, so effects aren't
     // delayed.
     pSongReader = new RageSoundReader_Extend(pSongReader);
-    pSongReader = new RageSoundReader_ThreadedBuffer(pSongReader);
+    pSongReader = Buffered(pSongReader);
     pShared = pSongReader;
   }
 
@@ -187,7 +199,7 @@ void AutoKeysounds::LoadTracks(
     // Load the buffering filter before the effects filters, so effects aren't
     // delayed.
     pGuitarTrackReader = new RageSoundReader_Extend(pGuitarTrackReader);
-    pGuitarTrackReader = new RageSoundReader_ThreadedBuffer(pGuitarTrackReader);
+    pGuitarTrackReader = Buffered(pGuitarTrackReader);
     pPlayer1 = pGuitarTrackReader;
   }
 

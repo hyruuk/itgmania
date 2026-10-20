@@ -312,6 +312,17 @@ void GameLoop::RunGameLoop() {
   }
 }
 
+void GameLoop::UpdateAndDraw() {
+  if (!g_NewGame.empty()) {
+    DoChangeGame();
+  }
+  if (!g_NewTheme.empty()) {
+    DoChangeTheme();
+  }
+  UpdateAllButDraw();
+  SCREENMAN->Draw();
+}
+
 class ConcurrentRenderer {
  public:
   ConcurrentRenderer();

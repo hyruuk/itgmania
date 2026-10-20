@@ -10,6 +10,7 @@
 #include "RageTimer.h"
 #include "archutils/Unix/X11Helper.h"
 #include "global.h"
+#include "gym/GymClock.h"
 using namespace RageDisplay_Legacy_Helpers;
 using namespace X11Helper;
 
@@ -251,12 +252,16 @@ std::string LowLevelWindow_X11::TryVideoMode(
         Dpy, Win,
         winAttrib.your_event_mask | StructureNotifyMask | PropertyChangeMask);
 
-    XMapWindow(Dpy, Win);
+    // A gym process renders offscreen and is never shown (an unmapped window
+    // would never send MapNotify, so the wait goes too).
+    if (!GymClock::IsEnabled()) {
+      XMapWindow(Dpy, Win);
 
-    XEvent ev;
-    do {
-      XWindowEvent(Dpy, Win, StructureNotifyMask, &ev);
-    } while (ev.type != MapNotify);
+      XEvent ev;
+      do {
+        XWindowEvent(Dpy, Win, StructureNotifyMask, &ev);
+      } while (ev.type != MapNotify);
+    }
 
     // I can't find official docs saying what happens if you re-init GLEW.
     // I'll just assume the behavior is undefined.

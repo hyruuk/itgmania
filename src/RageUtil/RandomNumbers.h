@@ -4,15 +4,22 @@
 #include <ctime>
 #include <random>
 
+/* The seed a generator gets when it is given 0: the time of day, or in gym
+ * mode a constant, so that a gym run never depends on when it started. */
+unsigned int DefaultRandomSeed();
+
 class MersenneTwister : public std::mt19937 {
  public:
   MersenneTwister(int iSeed = 0)
-      : std::mt19937(iSeed == 0 ? time(nullptr) : iSeed) {}
+      : std::mt19937(iSeed == 0 ? DefaultRandomSeed() : iSeed) {}
 };
 
 typedef MersenneTwister RandomGen;
 
 extern RandomGen g_RandomNumberGenerator;
+
+/* Reseed g_RandomNumberGenerator and the generator behind Lua's math.random. */
+void SeedRandomNumberGenerators(unsigned int iSeed);
 
 /**
  * @brief Return a float between the low and high values.
